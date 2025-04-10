@@ -6,200 +6,36 @@
     <title>DetNet NIDS - Advanced Dashboard</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Geist+Mono&display=swap');
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #ffffff;
-            color: #000000;
-            font-family: 'Geist Mono', monospace;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .container {
-            display: grid;
-            grid-template-areas:
-                "attack-panel attack-panel attack-panel"
-                "header header header"
-                "sidebar main graphs"
-                "sidebar . graphs";
-            grid-template-columns: 300px 1fr 400px;
-            grid-template-rows: 30px 60px calc(100vh - 95px) 0px;
-            gap: 5px;
-            padding: 5px;
-            height: 100vh;
-        }
-
-        .attack-panel {
-            grid-area: attack-panel;
-            background: #f0f0f0;
-            padding: 2px 10px;
-            border-bottom: 1px solid #000000;
-            font-size: 0.8em;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-
-        .attack-item {
-            display: inline-block;
-            padding: 2px 6px;
-            background: #ffcccc;
-            color: #800000;
-            border-radius: 4px;
-            margin-right: 5px;
-        }
-
-        header {
-            grid-area: header;
-            background: #ffffff;
-            padding: 5px 10px;
-            border-bottom: 1px solid #000000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 5px;
-        }
-
-        .status-bar {
-            display: flex;
-            gap: 10px;
-        }
-
-        .status-bar span {
-            padding: 3px 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #ffffff; color: #000000; font-family: 'Geist Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .container { display: grid; grid-template-areas: "attack-panel attack-panel attack-panel" "header header header" "sidebar main graphs" "sidebar . graphs"; grid-template-columns: 300px 1fr 400px; grid-template-rows: 30px 60px calc(100vh - 95px) 0px; gap: 5px; padding: 5px; height: 100vh; }
+        .attack-panel { grid-area: attack-panel; background: #f0f0f0; padding: 2px 10px; border-bottom: 1px solid #000000; font-size: 0.8em; overflow-x: auto; white-space: nowrap; }
+        .attack-item { display: inline-block; padding: 2px 6px; background: #ffcccc; color: #800000; border-radius: 4px; margin-right: 5px; }
+        header { grid-area: header; background: #ffffff; padding: 5px 10px; border-bottom: 1px solid #000000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); }
+        .header-controls { display: flex; gap: 5px; }
+        .status-bar { display: flex; gap: 10px; }
+        .status-bar span { padding: 3px 8px; background: #e0e0e0; border-radius: 4px; font-size: 0.9em; }
         #status.online { background: #90ee90; }
         #status.offline { background: #ffcccc; }
-
-        .btn {
-            padding: 6px 12px;
-            background: #000000;
-            border: 1px solid #000000;
-            border-radius: 4px;
-            color: #ffffff;
-            cursor: pointer;
-            font-size: 0.85em;
-            text-transform: uppercase;
-            transition: background 0.3s ease;
-        }
-
-        .btn:hover, .btn.active {
-            background: #333333;
-            color: #ffffff;
-        }
-
-        .attack-btn {
-            background: #800000;
-        }
-
-        .attack-btn:hover, .attack-btn.active {
-            background: #cc0000;
-            color: #ffffff;
-        }
-
-        .sidebar {
-            grid-area: sidebar;
-            background: #ffffff;
-            padding: 10px;
-            border-right: 1px solid #000000;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            height: 100%;
-            overflow-y: auto;
-        }
-
-        .stats-grid, .logs-grid {
-            display: grid;
-            gap: 4px;
-            font-size: 0.9em;
-        }
-
-        .stat-card, .log-entry {
-            padding: 6px;
-            background: #f0f0f0;
-            border: 1px solid #d0d0d0;
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .log-entry.malicious {
-            background: #ffcccc;
-            color: #800000;
-        }
-
-        .logs-grid {
-            flex: 1;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .main {
-            grid-area: main;
-            background: #ffffff;
-            padding: 10px;
-            border-right: 1px solid #000000;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .graphs {
-            grid-area: graphs;
-            background: #ffffff;
-            padding: 10px;
-            border-left: 1px solid #000000;
-            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            overflow-y: auto;
-            max-height: calc(100vh - 75px);
-        }
-
-        .graph-container {
-            border: 2px solid #f0f0f0;
-            border-radius: 4px;
-            padding: 5px;
-            width: 100%;
-            max-height: 200px;
-            overflow: hidden;
-            transition: border-color 0.5s;
-        }
-
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
-            max-height: 100% !important;
-        }
-
-        h2 {
-            margin-bottom: 5px;
-            color: #000000;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #d0d0d0;
-        }
+        .btn { padding: 6px 12px; background: #000000; border: 1px solid #000000; border-radius: 4px; color: #ffffff; cursor: pointer; font-size: 0.85em; text-transform: uppercase; transition: background 0.3s ease, border-color 0.3s ease; }
+        .btn:hover:not(.active) { background: #333333; }
+        .btn.active { background: #666666; border-color: #999999; }
+        .attack-btn { background: #800000; border-color: #800000; }
+        .attack-btn:hover:not(.active) { background: #cc0000; border-color: #cc0000; }
+        .attack-btn.active { background: #ff3333; border-color: #ff0000; }
+        .stop-attack-btn { background: #006600; border-color: #006600; }
+        .stop-attack-btn:hover:not(.active) { background: #009900; border-color: #009900; }
+        .stop-attack-btn.active { background: #00cc00; border-color: #00ff00; }
+        .sidebar { grid-area: sidebar; background: #ffffff; padding: 10px; border-right: 1px solid #000000; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; gap: 10px; height: 100%; overflow-y: auto; }
+        .stats-grid, .logs-grid { display: grid; gap: 4px; font-size: 0.9em; }
+        .stat-card, .log-entry { padding: 6px; background: #f0f0f0; border: 1px solid #d0d0d0; border-radius: 4px; display: flex; flex-direction: column; }
+        .log-entry.malicious { background: #ffcccc; color: #800000; }
+        .logs-grid { flex: 1; max-height: 400px; overflow-y: auto; }
+        .main { grid-area: main; background: #ffffff; padding: 10px; border-right: 1px solid #000000; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; gap: 5px; }
+        .graphs { grid-area: graphs; background: #ffffff; padding: 10px; border-left: 1px solid #000000; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; gap: 5px; overflow-y: auto; max-height: calc(100vh - 75px); }
+        .graph-container { border: 2px solid #f0f0f0; border-radius: 4px; padding: 5px; width: 100%; max-height: 200px; overflow: hidden; transition: border-color 0.5s; }
+        canvas { width: 100% !important; height: 100% !important; max-height: 100% !important; }
+        h2 { margin-bottom: 5px; color: #000000; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #d0d0d0; }
     </style>
 </head>
 <body>
@@ -210,18 +46,18 @@
             <div class="header-controls">
                 <button id="startBtn" class="btn">Start</button>
                 <button id="stopBtn" class="btn">Stop</button>
-                <button onclick="socket.emit('simulate_attack', 'DDoS')" class="btn attack-btn">DDoS</button>
-                <button onclick="socket.emit('simulate_attack', 'PortScan')" class="btn attack-btn">PortScan</button>
-                <button onclick="socket.emit('simulate_attack', 'SQLInjection')" class="btn attack-btn">SQLInjection</button>
-                <button onclick="socket.emit('simulate_attack', 'XSS')" class="btn attack-btn">XSS</button>
-                <button onclick="socket.emit('simulate_attack', 'Malware')" class="btn attack-btn">Malware</button>
+                <button id="ddosBtn" class="btn attack-btn">DDoS</button>
+                <button id="portScanBtn" class="btn attack-btn">PortScan</button>
+                <button id="sqlInjectionBtn" class="btn attack-btn">SQLInjection</button>
+                <button id="xssBtn" class="btn attack-btn">XSS</button>
+                <button id="malwareBtn" class="btn attack-btn">Malware</button>
+                <button id="stopAttackBtn" class="btn stop-attack-btn">Stop Attack</button>
             </div>
             <div class="status-bar">
                 <span id="status">Offline</span>
                 <span id="time"></span>
             </div>
         </header>
-
         <div class="sidebar">
             <div>
                 <h2>Network Stats</h2>
@@ -238,7 +74,6 @@
                 <div id="logContainer" class="logs-grid"></div>
             </div>
         </div>
-
         <div class="main">
             <div class="graph-container" id="trafficContainer">
                 <h2>Live Traffic</h2>
@@ -259,7 +94,6 @@
                 <canvas id="maliciousTrendChart"></canvas>
             </div>
         </div>
-
         <div class="graphs">
             <div class="graph-container" id="anomalyContainer">
                 <h2>Anomalies</h2>
@@ -280,6 +114,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         const socket = io('http://127.0.0.1:5000');
+        let isMonitoring = false;
         let packetCount = 0;
         let maliciousCount = 0;
         let topTalkers = {};
@@ -288,6 +123,7 @@
         let maliciousTrend = [];
         let latencyData = [];
         let startTime = null;
+        let activeAttack = null;
 
         let trafficBuffer = [];
         let sizeBuffer = [];
@@ -302,80 +138,160 @@
 
         setInterval(() => {
             document.getElementById('time').textContent = new Date().toLocaleTimeString();
-            if (startTime) {
+            if (startTime && isMonitoring) {
                 const uptime = new Date(Date.now() - startTime);
                 document.getElementById('uptime').textContent = uptime.toISOString().substr(11, 8);
+            } else {
+                document.getElementById('uptime').textContent = '00:00:00';
             }
         }, 1000);
 
         const charts = {
             traffic: new Chart(document.getElementById('trafficChart').getContext('2d'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: 'KB/s', data: [], borderColor: '#0000ff', fill: true, backgroundColor: 'rgba(0, 0, 255, 0.2)' }] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true }, x: { ticks: { maxTicksLimit: 10 } } },
-                    plugins: { legend: { labels: { font: { size: 10 } } } }
-                }
+                type: 'line', data: { labels: [], datasets: [{ label: 'KB/s', data: [], borderColor: '#0000ff', fill: true, backgroundColor: 'rgba(0, 0, 255, 0.2)' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { ticks: { maxTicksLimit: 10 } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
             }),
             size: new Chart(document.getElementById('sizeChart').getContext('2d'), {
-                type: 'bar',
-                data: { labels: [], datasets: [{ label: 'Count', data: [], backgroundColor: '#0000ff' }] },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } },
-                    plugins: { legend: { labels: { font: { size: 10 } } } }
-                }
+                type: 'bar', data: { labels: [], datasets: [{ label: 'Count', data: [], backgroundColor: '#0000ff' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
             }),
             anomaly: new Chart(document.getElementById('anomalyChart').getContext('2d'), {
-                type: 'bar',
-                data: { labels: ['Port Scan', 'DDoS'], datasets: [{ label: 'Count', data: [0, 0], backgroundColor: '#ff0000' }] },
+                type: 'bar', data: { labels: ['Port Scan', 'DDoS'], datasets: [{ label: 'Count', data: [0, 0], backgroundColor: '#ff0000' }] },
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
             }),
             topTalkers: new Chart(document.getElementById('topTalkersChart').getContext('2d'), {
-                type: 'pie',
-                data: { labels: [], datasets: [{ data: [], backgroundColor: ['#0000ff', '#00ff00', '#ff0000', '#ffa500'] }] },
+                type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#0000ff', '#00ff00', '#ff0000', '#ffa500'] }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 } } } } }
             }),
             protocol: new Chart(document.getElementById('protocolChart').getContext('2d'), {
-                type: 'doughnut',
-                data: { labels: ['TCP', 'UDP', 'Other'], datasets: [{ data: [0, 0, 0], backgroundColor: ['#0000ff', '#00ff00', '#ffa500'] }] },
+                type: 'doughnut', data: { labels: ['TCP', 'UDP', 'Other'], datasets: [{ data: [0, 0, 0], backgroundColor: ['#0000ff', '#00ff00', '#ffa500'] }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 } } } } }
             }),
             maliciousTrend: new Chart(document.getElementById('maliciousTrendChart').getContext('2d'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: '%', data: [], borderColor: '#ff0000', fill: false }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 30, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 10 } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
+                type: 'line', 
+                data: { 
+                    labels: [], 
+                    datasets: [{ 
+                        label: '%', 
+                        data: [], 
+                        borderColor: '#ff0000', 
+                        fill: false 
+                    }] 
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { font: { size: 10 } } 
+                        }, 
+                        x: { 
+                            ticks: { font: { size: 10 }, maxTicksLimit: 10 } 
+                        } 
+                    }, 
+                    plugins: { 
+                        legend: { labels: { font: { size: 10 } } } 
+                    } 
+                }
             }),
             latency: new Chart(document.getElementById('latencyChart').getContext('2d'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: 'ms', data: [], borderColor: '#ffa500', fill: false }] },
+                type: 'line', data: { labels: [], datasets: [{ label: 'ms', data: [], borderColor: '#ffa500', fill: false }] },
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 10 } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
             })
         };
 
+        function resetUI() {
+            packetCount = 0;
+            maliciousCount = 0;
+            topTalkers = {};
+            protocolCounts = { TCP: 0, UDP: 0, Other: 0 };
+            packetSizes = [];
+            maliciousTrend = [];
+            latencyData = [];
+            trafficBuffer = [];
+            sizeBuffer = [];
+            anomalyBuffer = [0, 0];
+            topTalkersBuffer = {};
+            protocolBuffer = { TCP: 0, UDP: 0, Other: 0 };
+            maliciousTrendBuffer = [];
+            latencyBuffer = [];
+            document.getElementById('totalPackets').textContent = '0';
+            document.getElementById('maliciousCount').textContent = '0';
+            document.getElementById('threatLevel').textContent = 'Low';
+            document.getElementById('bandwidth').textContent = '0 kbps';
+            document.getElementById('logContainer').innerHTML = '';
+            document.getElementById('attackPanel').innerHTML = '';
+            Object.values(charts).forEach(chart => {
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                if (chart === charts.anomaly) chart.data.datasets[0].data = [0, 0];
+                if (chart === charts.protocol) chart.data.datasets[0].data = [0, 0, 0];
+                chart.update();
+            });
+            resetAttackButtons();
+        }
+
+        function resetAttackButtons() {
+            activeAttack = null;
+            document.querySelectorAll('.attack-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('stopAttackBtn').classList.remove('active');
+        }
+
         document.getElementById('startBtn').addEventListener('click', () => {
-            socket.emit('start_monitoring');
-            startTime = Date.now();
-            document.getElementById('startBtn').classList.add('active');
-            document.getElementById('stopBtn').classList.remove('active');
+            if (!isMonitoring) {
+                socket.emit('start_monitoring');
+            }
         });
 
         document.getElementById('stopBtn').addEventListener('click', () => {
-            socket.emit('stop_monitoring');
-            startTime = null;
-            document.getElementById('stopBtn').classList.add('active');
-            document.getElementById('startBtn').classList.remove('active');
+            if (isMonitoring) {
+                socket.emit('stop_monitoring');
+            }
+        });
+
+        function startAttack(attackType, buttonId) {
+            if (isMonitoring && !activeAttack) {
+                socket.emit('simulate_attack', attackType);
+                activeAttack = attackType;
+                document.getElementById(buttonId).classList.add('active');
+                document.getElementById('stopAttackBtn').classList.add('active');
+            }
+        }
+
+        document.getElementById('ddosBtn').addEventListener('click', () => startAttack('DDoS', 'ddosBtn'));
+        document.getElementById('portScanBtn').addEventListener('click', () => startAttack('PortScan', 'portScanBtn'));
+        document.getElementById('sqlInjectionBtn').addEventListener('click', () => startAttack('SQLInjection', 'sqlInjectionBtn'));
+        document.getElementById('xssBtn').addEventListener('click', () => startAttack('XSS', 'xssBtn'));
+        document.getElementById('malwareBtn').addEventListener('click', () => startAttack('Malware', 'malwareBtn'));
+
+        document.getElementById('stopAttackBtn').addEventListener('click', () => {
+            if (isMonitoring && activeAttack) {
+                socket.emit('stop_attack');
+            }
         });
 
         socket.on('status_update', (data) => {
             document.getElementById('status').textContent = data.status;
             document.getElementById('status').className = data.status.toLowerCase();
+            if (data.status === 'Online') {
+                isMonitoring = true;
+                startTime = Date.now();
+                document.getElementById('startBtn').classList.add('active');
+                document.getElementById('stopBtn').classList.remove('active');
+            } else if (data.status === 'Offline') {
+                isMonitoring = false;
+                startTime = null;
+                document.getElementById('stopBtn').classList.add('active');
+                document.getElementById('startBtn').classList.remove('active');
+                resetUI();
+            } else if (data.status.includes('Attack Ended') || data.status.includes('Attack Stopped')) {
+                resetAttackButtons();
+            }
         });
 
         socket.on('new_packet', (packet) => {
+            if (!isMonitoring) return;
             const time = new Date(packet.timestamp).toLocaleTimeString();
             const proto = packet.protocol === 6 ? 'TCP' : packet.protocol === 17 ? 'UDP' : packet.protocol === 'DDoS' || packet.protocol === 'PortScan' || packet.protocol === 'SQLInjection' || packet.protocol === 'XSS' || packet.protocol === 'Malware' ? packet.protocol : 'Other';
 
@@ -480,6 +396,7 @@
         });
 
         socket.on('attack_highlight', (data) => {
+            if (!isMonitoring) return;
             const panel = document.getElementById('attackPanel');
             panel.innerHTML = '';
             if (data.attack) {
@@ -492,10 +409,7 @@
                 item.className = 'attack-item';
                 item.textContent = `${data.attack} (Most Viewable: ${graph})`;
                 panel.appendChild(item);
-
-                // Reset all borders
                 document.querySelectorAll('.graph-container').forEach(container => container.style.borderColor = '#f0f0f0');
-                // Apply colored borders based on attack type
                 if (data.attack === 'DDoS') document.getElementById('anomalyContainer').style.borderColor = '#ff0000';
                 if (data.attack === 'PortScan') document.getElementById('anomalyContainer').style.borderColor = '#0000ff';
                 if (data.attack === 'SQLInjection') document.getElementById('maliciousTrendContainer').style.borderColor = '#ff00ff';
