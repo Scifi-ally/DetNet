@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DetNet NIDS - Advanced Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist+Mono&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #ffffff;
+            color: #000000;
+            font-family: 'Geist Mono', monospace;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            display: grid;
+            grid-template-areas:
+                "attack-panel attack-panel attack-panel"
+                "header header header"
+                "sidebar main graphs"
+                "sidebar . graphs";
+            grid-template-columns: 300px 1fr 400px;
+            grid-template-rows: 30px 60px calc(100vh - 95px) 0px;
+            gap: 5px;
+            padding: 5px;
+            height: 100vh;
+        }
+
+        .attack-panel {
+            grid-area: attack-panel;
+            background: #f0f0f0;
+            padding: 2px 10px;
+            border-bottom: 1px solid #000000;
+            font-size: 0.8em;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .attack-item {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #ffcccc;
+            color: #800000;
+            border-radius: 4px;
+            margin-right: 5px;
+        }
+
+        header {
+            grid-area: header;
+            background: #ffffff;
+            padding: 5px 10px;
+            border-bottom: 1px solid #000000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-bar span {
+            padding: 3px 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        #status.online { background: #90ee90; }
+        #status.offline { background: #ffcccc; }
+
+        .btn {
+            padding: 6px 12px;
+            background: #000000;
+            border: 1px solid #000000;
+            border-radius: 4px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover, .btn.active {
+            background: #333333;
+            color: #ffffff;
+        }
+
+        .attack-btn {
+            background: #800000;
+        }
+
+        .attack-btn:hover, .attack-btn.active {
+            background: #cc0000;
+            color: #ffffff;
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background: #ffffff;
+            padding: 10px;
+            border-right: 1px solid #000000;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .stats-grid, .logs-grid {
+            display: grid;
+            gap: 4px;
+            font-size: 0.9em;
+        }
+
+        .stat-card, .log-entry {
+            padding: 6px;
+            background: #f0f0f0;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-entry.malicious {
+            background: #ffcccc;
+            color: #800000;
+        }
+
+        .logs-grid {
+            flex: 1;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .main {
+            grid-area: main;
+            background: #ffffff;
+            padding: 10px;
+            border-right: 1px solid #000000;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .graphs {
+            grid-area: graphs;
+            background: #ffffff;
+            padding: 10px;
+            border-left: 1px solid #000000;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            overflow-y: auto;
+            max-height: calc(100vh - 75px);
+        }
+
+        .graph-container {
+            border: 2px solid #f0f0f0;
+            border-radius: 4px;
+            padding: 5px;
+            width: 100%;
+            max-height: 200px;
+            overflow: hidden;
+            transition: border-color 0.5s;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 100% !important;
+        }
+
+        h2 {
+            margin-bottom: 5px;
+            color: #000000;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #d0d0d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="attack-panel" id="attackPanel"></div>
+        <header>
+            <h2>DetNet</h2>
+            <div class="header-controls">
+                <button id="startBtn" class="btn">Start</button>
+                <button id="stopBtn" class="btn">Stop</button>
+                <button onclick="socket.emit('simulate_attack', 'DDoS')" class="btn attack-btn">DDoS</button>
+                <button onclick="socket.emit('simulate_attack', 'PortScan')" class="btn attack-btn">PortScan</button>
+                <button onclick="socket.emit('simulate_attack', 'SQLInjection')" class="btn attack-btn">SQLInjection</button>
+                <button onclick="socket.emit('simulate_attack', 'XSS')" class="btn attack-btn">XSS</button>
+                <button onclick="socket.emit('simulate_attack', 'Malware')" class="btn attack-btn">Malware</button>
+            </div>
+            <div class="status-bar">
+                <span id="status">Offline</span>
+                <span id="time"></span>
+            </div>
+        </header>
+
+        <div class="sidebar">
+            <div>
+                <h2>Network Stats</h2>
+                <div class="stats-grid">
+                    <div class="stat-card"><span>Packets:</span><span id="totalPackets">0</span></div>
+                    <div class="stat-card"><span>Malicious:</span><span id="maliciousCount">0</span></div>
+                    <div class="stat-card"><span>Threat:</span><span id="threatLevel">Low</span></div>
+                    <div class="stat-card"><span>Bandwidth:</span><span id="bandwidth">0 kbps</span></div>
+                    <div class="stat-card"><span>Uptime:</span><span id="uptime">00:00:00</span></div>
+                </div>
+            </div>
+            <div>
+                <h2>Recent Logs</h2>
+                <div id="logContainer" class="logs-grid"></div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="graph-container" id="trafficContainer">
+                <h2>Live Traffic</h2>
+                <canvas id="trafficChart"></canvas>
+            </div>
+            <div style="display: flex;gap: 5px;">
+                <div class="graph-container" id="sizeContainer" style="width: 50%;padding: 1.5rem;">
+                    <h2>Packet Sizes</h2>
+                    <canvas id="sizeChart"></canvas>
+                </div>
+                <div class="graph-container" id="topTalkersContainer" style="width: 50%;padding: 1.5rem;">
+                    <h2>Top Talkers</h2>
+                    <canvas id="topTalkersChart"></canvas>
+                </div>
+            </div>
+            <div class="graph-container" id="maliciousTrendContainer">
+                <h2>Malicious Trend</h2>
+                <canvas id="maliciousTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="graphs">
+            <div class="graph-container" id="anomalyContainer">
+                <h2>Anomalies</h2>
+                <canvas id="anomalyChart"></canvas>
+            </div>
+            <div class="graph-container" id="protocolContainer" style="padding: 1.5rem;">
+                <h2>Protocols</h2>
+                <canvas id="protocolChart"></canvas>
+            </div>
+            <div class="graph-container" id="latencyContainer">
+                <h2>Latency</h2>
+                <canvas id="latencyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const socket = io('http://127.0.0.1:5000');
+        let packetCount = 0;
+        let maliciousCount = 0;
+        let topTalkers = {};
+        let protocolCounts = { TCP: 0, UDP: 0, Other: 0 };
+        let packetSizes = [];
+        let maliciousTrend = [];
+        let latencyData = [];
+        let startTime = null;
+
+        let trafficBuffer = [];
+        let sizeBuffer = [];
+        let anomalyBuffer = [0, 0];
+        let topTalkersBuffer = {};
+        let protocolBuffer = { TCP: 0, UDP: 0, Other: 0 };
+        let maliciousTrendBuffer = [];
+        let latencyBuffer = [];
+
+        let lastUpdate = 0;
+        const UPDATE_INTERVAL = 1000;
+
+        setInterval(() => {
+            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+            if (startTime) {
+                const uptime = new Date(Date.now() - startTime);
+                document.getElementById('uptime').textContent = uptime.toISOString().substr(11, 8);
+            }
+        }, 1000);
+
+        const charts = {
+            traffic: new Chart(document.getElementById('trafficChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'KB/s', data: [], borderColor: '#0000ff', fill: true, backgroundColor: 'rgba(0, 0, 255, 0.2)' }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true }, x: { ticks: { maxTicksLimit: 10 } } },
+                    plugins: { legend: { labels: { font: { size: 10 } } } }
+                }
+            }),
+            size: new Chart(document.getElementById('sizeChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Count', data: [], backgroundColor: '#0000ff' }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } },
+                    plugins: { legend: { labels: { font: { size: 10 } } } }
+                }
+            }),
+            anomaly: new Chart(document.getElementById('anomalyChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels: ['Port Scan', 'DDoS'], datasets: [{ label: 'Count', data: [0, 0], backgroundColor: '#ff0000' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
+            }),
+            topTalkers: new Chart(document.getElementById('topTalkersChart').getContext('2d'), {
+                type: 'pie',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: ['#0000ff', '#00ff00', '#ff0000', '#ffa500'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 } } } } }
+            }),
+            protocol: new Chart(document.getElementById('protocolChart').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: ['TCP', 'UDP', 'Other'], datasets: [{ data: [0, 0, 0], backgroundColor: ['#0000ff', '#00ff00', '#ffa500'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 } } } } }
+            }),
+            maliciousTrend: new Chart(document.getElementById('maliciousTrendChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: '%', data: [], borderColor: '#ff0000', fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 30, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 10 } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
+            }),
+            latency: new Chart(document.getElementById('latencyChart').getContext('2d'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'ms', data: [], borderColor: '#ffa500', fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 }, maxTicksLimit: 10 } } }, plugins: { legend: { labels: { font: { size: 10 } } } } }
+            })
+        };
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            socket.emit('start_monitoring');
+            startTime = Date.now();
+            document.getElementById('startBtn').classList.add('active');
+            document.getElementById('stopBtn').classList.remove('active');
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            socket.emit('stop_monitoring');
+            startTime = null;
+            document.getElementById('stopBtn').classList.add('active');
+            document.getElementById('startBtn').classList.remove('active');
+        });
+
+        socket.on('status_update', (data) => {
+            document.getElementById('status').textContent = data.status;
+            document.getElementById('status').className = data.status.toLowerCase();
+        });
+
+        socket.on('new_packet', (packet) => {
+            const time = new Date(packet.timestamp).toLocaleTimeString();
+            const proto = packet.protocol === 6 ? 'TCP' : packet.protocol === 17 ? 'UDP' : packet.protocol === 'DDoS' || packet.protocol === 'PortScan' || packet.protocol === 'SQLInjection' || packet.protocol === 'XSS' || packet.protocol === 'Malware' ? packet.protocol : 'Other';
+
+            const now = Date.now();
+            trafficBuffer.push({ time, value: packet.packet_size / 1000 });
+            sizeBuffer.push(packet.packet_size);
+            if (packet.is_malicious) {
+                if (proto === 'PortScan') anomalyBuffer[0]++;
+                else if (proto === 'DDoS') anomalyBuffer[1]++;
+            }
+            topTalkersBuffer[packet.source_ip] = (topTalkersBuffer[packet.source_ip] || 0) + 1;
+            protocolBuffer[proto === 'TCP' || proto === 'UDP' ? proto : 'Other']++;
+            maliciousTrendBuffer.push({ time, value: ((maliciousCount + (packet.is_malicious ? 1 : 0)) / (packetCount + 1)) * 100 || 0 });
+            latencyBuffer.push({ time, value: Math.random() * 20 + 5 });
+
+            packetCount++;
+            if (packet.is_malicious) maliciousCount++;
+            document.getElementById('totalPackets').textContent = packetCount;
+            document.getElementById('maliciousCount').textContent = maliciousCount;
+            document.getElementById('threatLevel').textContent = ((maliciousCount / packetCount) * 100 || 0) > 30 ? 'High' : ((maliciousCount / packetCount) * 100 || 0) > 15 ? 'Medium' : 'Low';
+            document.getElementById('bandwidth').textContent = `${(packet.packet_size * 8 / 1000).toFixed(2)} kbps`;
+
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry ${packet.is_malicious ? 'malicious' : ''}`;
+            logDiv.textContent = `${time} ${packet.source_ip} → ${packet.dest_ip} [${packet.packet_size}B] ${proto}`;
+            document.getElementById('logContainer').prepend(logDiv);
+            if (document.getElementById('logContainer').children.length > 5) {
+                document.getElementById('logContainer').removeChild(document.getElementById('logContainer').lastChild);
+            }
+
+            if (now - lastUpdate >= UPDATE_INTERVAL) {
+                if (trafficBuffer.length > 0) {
+                    const avgTraffic = trafficBuffer.reduce((sum, item) => sum + item.value, 0) / trafficBuffer.length;
+                    charts.traffic.data.labels.push(trafficBuffer[0].time);
+                    charts.traffic.data.datasets[0].data.push(avgTraffic);
+                    if (charts.traffic.data.labels.length > 20) {
+                        charts.traffic.data.labels.shift();
+                        charts.traffic.data.datasets[0].data.shift();
+                    }
+                    charts.traffic.update();
+                    trafficBuffer = [];
+                }
+
+                if (sizeBuffer.length > 0) {
+                    const bins = Array(5).fill(0);
+                    sizeBuffer.forEach(size => {
+                        const bin = Math.min(Math.floor(size / 1000), 4);
+                        bins[bin]++;
+                    });
+                    charts.size.data.labels = bins.map((_, i) => `${i * 1000}-${(i + 1) * 1000}`);
+                    charts.size.data.datasets[0].data = bins;
+                    charts.size.update();
+                    sizeBuffer = [];
+                }
+
+                if (anomalyBuffer.some(count => count > 0)) {
+                    charts.anomaly.data.datasets[0].data = [...anomalyBuffer];
+                    charts.anomaly.update();
+                    anomalyBuffer = [0, 0];
+                }
+
+                if (Object.keys(topTalkersBuffer).length > 0) {
+                    const topTalkersArray = Object.entries(topTalkersBuffer).sort((a, b) => b[1] - a[1]).slice(0, 4);
+                    charts.topTalkers.data.labels = topTalkersArray.map(([ip]) => ip);
+                    charts.topTalkers.data.datasets[0].data = topTalkersArray.map(([, count]) => count);
+                    charts.topTalkers.update();
+                    topTalkersBuffer = {};
+                }
+
+                if (Object.values(protocolBuffer).some(count => count > 0)) {
+                    charts.protocol.data.datasets[0].data = [protocolBuffer.TCP, protocolBuffer.UDP, protocolBuffer.Other];
+                    charts.protocol.update();
+                    protocolBuffer = { TCP: 0, UDP: 0, Other: 0 };
+                }
+
+                if (maliciousTrendBuffer.length > 0) {
+                    const avgMalicious = maliciousTrendBuffer.reduce((sum, item) => sum + item.value, 0) / maliciousTrendBuffer.length;
+                    charts.maliciousTrend.data.labels.push(maliciousTrendBuffer[0].time);
+                    charts.maliciousTrend.data.datasets[0].data.push(avgMalicious);
+                    if (charts.maliciousTrend.data.labels.length > 20) {
+                        charts.maliciousTrend.data.labels.shift();
+                        charts.maliciousTrend.data.datasets[0].data.shift();
+                    }
+                    charts.maliciousTrend.update();
+                    maliciousTrendBuffer = [];
+                }
+
+                if (latencyBuffer.length > 0) {
+                    const avgLatency = latencyBuffer.reduce((sum, item) => sum + item.value, 0) / latencyBuffer.length;
+                    charts.latency.data.labels.push(latencyBuffer[0].time);
+                    charts.latency.data.datasets[0].data.push(avgLatency);
+                    if (charts.latency.data.labels.length > 20) {
+                        charts.latency.data.labels.shift();
+                        charts.latency.data.datasets[0].data.shift();
+                    }
+                    charts.latency.update();
+                    latencyBuffer = [];
+                }
+
+                lastUpdate = now;
+            }
+        });
+
+        socket.on('attack_highlight', (data) => {
+            const panel = document.getElementById('attackPanel');
+            panel.innerHTML = '';
+            if (data.attack) {
+                let graph = '';
+                if (data.attack === 'DDoS' || data.attack === 'PortScan') graph = 'Anomalies';
+                if (data.attack === 'SQLInjection') graph = 'Malicious Trend';
+                if (data.attack === 'XSS') graph = 'Top Talkers';
+                if (data.attack === 'Malware') graph = 'Live Traffic';
+                const item = document.createElement('div');
+                item.className = 'attack-item';
+                item.textContent = `${data.attack} (Most Viewable: ${graph})`;
+                panel.appendChild(item);
+
+                // Reset all borders
+                document.querySelectorAll('.graph-container').forEach(container => container.style.borderColor = '#f0f0f0');
+                // Apply colored borders based on attack type
+                if (data.attack === 'DDoS') document.getElementById('anomalyContainer').style.borderColor = '#ff0000';
+                if (data.attack === 'PortScan') document.getElementById('anomalyContainer').style.borderColor = '#0000ff';
+                if (data.attack === 'SQLInjection') document.getElementById('maliciousTrendContainer').style.borderColor = '#ff00ff';
+                if (data.attack === 'XSS') document.getElementById('topTalkersContainer').style.borderColor = '#00ff00';
+                if (data.attack === 'Malware') document.getElementById('trafficContainer').style.borderColor = '#ffa500';
+            } else {
+                document.querySelectorAll('.graph-container').forEach(container => container.style.borderColor = '#f0f0f0');
+            }
+        });
+    </script>
+</body>
+</html>
